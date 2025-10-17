@@ -1,0 +1,22 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+pydantic-settings==2.5.2
+google-auth==2.35.0
+google-auth-oauthlib==1.2.1
+google-auth-httplib2==0.2.0
+google-api-python-client==2.149.0
+python-dotenv==1.0.1
+aiofiles==24.1.0
+
+# Candidates will choose and install their own vector DB dependencies
+# Examples they might use:
+# pinecone-client==3.0.0
+# chromadb==0.4.22
+# qdrant-client==1.7.0
+# weaviate-client==4.4.0
+
+# For embeddings (candidates will choose)
+# openai==1.10.0
+# cohere==4.47
+# sentence-transformers==2.3.1

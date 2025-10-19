@@ -1,11 +1,11 @@
 import { ChatInterface } from '@/components/ChatInterface';
 import { IngestionPanel } from '@/components/IngestionPanel';
 import { AuthButton } from '@/components/AuthButton';
+import { useAuthStatus } from '@/hooks/useAuthStatus';
 
 function App() {
-  // TODO: Add logic to check if user is authenticated
-  // For now, showing the main interface
-  const isAuthenticated = true;
+  const { data: authStatus } = useAuthStatus();
+  const isAuthenticated = authStatus?.isAuthenticated ?? false;
 
   return (
     <div className="h-screen flex flex-col bg-white">

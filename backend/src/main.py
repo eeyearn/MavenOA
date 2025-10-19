@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 
-from .routes import auth, drive, ingest, search, chat
+from .routes import auth, drive, ingest, chat
 
 # Load environment variables
 load_dotenv()
@@ -33,7 +33,6 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api")
 app.include_router(drive.router, prefix="/api")
 app.include_router(ingest.router, prefix="/api")
-app.include_router(search.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 
 

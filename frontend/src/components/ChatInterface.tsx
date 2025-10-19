@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Folder, File, Loader2 } from 'lucide-react';
-import { useDrive } from '@/hooks/useDrive';
+import { useChat } from '@/hooks/useChat';
+import { useFolders } from '@/hooks/useFolders';
+import { useFiles } from '@/hooks/useFiles';
 import type { ChatMessage } from '@/types';
 import { SourceCard } from './SourceCard';
 
@@ -11,7 +13,6 @@ export const ChatInterface = () => {
   const [selectedFileId, setSelectedFileId] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { useChat, useFolders, useFiles } = useDrive();
   const chatMutation = useChat();
   const { data: folders } = useFolders();
   const { data: files } = useFiles();

@@ -1,5 +1,6 @@
 """
 Ingestion Service - TEMPLATE FOR CANDIDATES TO IMPLEMENT
+Note: All the functions may nor may not be necessary to implement depending on your implementation.
 
 TODO: Implement this service to:
 1. Connect to Google Drive using the DriveService

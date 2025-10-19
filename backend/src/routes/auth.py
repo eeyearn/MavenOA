@@ -1,5 +1,5 @@
 """
-Authentication Routes - COMPLETE implementation
+Authentication Routes 
 Handles Google OAuth flow
 """
 

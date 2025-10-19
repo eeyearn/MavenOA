@@ -1,8 +1,7 @@
 import { LogIn, Loader2 } from 'lucide-react';
-import { useDrive } from '@/hooks/useDrive';
+import { useAuthUrl } from '@/hooks/useAuthUrl';
 
 export const AuthButton = () => {
-  const { useAuthUrl } = useDrive();
   const { data, isLoading } = useAuthUrl();
 
   const handleAuth = () => {

@@ -1,6 +1,5 @@
 """
 Google Drive Service - Handles authentication and file operations
-This is a COMPLETE implementation for candidates to use.
 """
 
 from typing import List, Optional
@@ -10,6 +9,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import io
 import os
+# 
 
 
 class DriveService:
@@ -164,6 +164,10 @@ class DriveService:
                 break
 
         return "/" + "/".join(path_parts)
+
+    def is_authenticated(self) -> bool:
+        """Check if user is authenticated with valid credentials"""
+        return self.credentials is not None and self.credentials.valid
 
 
 # Global instance

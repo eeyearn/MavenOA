@@ -1,8 +1,8 @@
 import { Play, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useDrive } from '@/hooks/useDrive';
+import { useIngestionStatus } from '@/hooks/useIngestionStatus';
+import { useStartIngestion } from '@/hooks/useStartIngestion';
 
 export const IngestionPanel = () => {
-  const { useIngestionStatus, useStartIngestion } = useDrive();
   const { data: status } = useIngestionStatus();
   const startIngestion = useStartIngestion();
 

@@ -24,7 +24,7 @@ We've built everything except the core logic:
 
 ## ⚠️ What YOU Need to Implement
 
-You need to implement **3 core functions**
+You need to implement **3 core functions**:
 
 ### 1. Ingestion Service (60-90 minutes)
 **File:** `backend/src/services/ingestion_service.py`
@@ -32,7 +32,7 @@ You need to implement **3 core functions**
 **What it should do:**
 - Fetch files from Google Drive
 - Extract text from different file types
-content intelligently- Chunk 
+- Chunk content intelligently
 - Generate embeddings
 - Store in vector database with metadata
 
@@ -61,7 +61,6 @@ content intelligently- Chunk
 ### 3. Chat Service (30-45 minutes)
 **File:** `backend/src/services/chat_service.py`
 
-
 **What it should do:**
 - Use `search_documents()` to find relevant context
 - Build prompt with context and conversation history (optional)
@@ -69,9 +68,7 @@ content intelligently- Chunk
 - Extract and return source citations
 
 **Key considerations:**
-- This is optional if you're running short on time
 - Focus on ingestion and search first
-- Simple RAG implementation is fine
 
 ## 🚀 Quick Start
 
@@ -159,14 +156,15 @@ pip install anthropic
 
 ### 4. Start Implementing (2-3 hours)
 
-The implementation files are in `backend/src/tools/`:
+The implementation files:
 
 ```
-backend/src/tools/
-├── __init__.py                    # Already done
-├── ingestion_tool.py             # ⚠️ YOU IMPLEMENT THIS
-├── search_tool.py                # ⚠️ YOU IMPLEMENT THIS
-└── chat_tool.py                  # ⚠️ YOU IMPLEMENT THIS (optional)
+backend/src/
+├── services/
+│   ├── ingestion_service.py      # ⚠️ YOU IMPLEMENT THIS
+│   └── chat_service.py           # ⚠️ YOU IMPLEMENT THIS
+└── tools/
+    └── search_tool.py            # ⚠️ YOU IMPLEMENT THIS
 ```
 
 Each file has:
@@ -252,13 +250,13 @@ We'll evaluate based on:
   - Vector DB storage (20 min)
   - Testing (10 min)
 
-- ✅ Search tool (45-60 min)
+- ✅ Search Tool (45-60 min)
   - Query embedding (10 min)
   - Vector search (15 min)
   - Result formatting (15 min)
   - Testing (15 min)
 
-- ✅ Chat service (30-45 min) - 
+- ✅ Chat Service (30-45 min)
   - Prompt building (15 min)
   - LLM integration (15 min)
   - Testing (10 min)
@@ -316,10 +314,10 @@ A: Submit what you have! We value quality over completeness. Show us your best w
 A: Yes! But make sure you understand the code. We'll discuss your implementation.
 
 **Q: Which vector DB should I use?**
-A: ChromaDB is easiest for local development. Pinecone is great for cloud. Or suprise us with an even better DB.
+A: ChromaDB is easiest for local development. Pinecone is great for cloud. Or surprise us with an even better DB.
 
-**Q: Do I need to implement chat?**
-A: It's optional. Focus on ingestion and search first. Chat is a bonus.
+**Q: Do I need to implement chat with streaming?**
+A: It's optional. Focus on ingestion and search first. Chat with streaming is a bonus. Otherwise, just a simple chat is alright!
 
 **Q: Can I modify the frontend or services?**
 A: You can, but focus on implementing the tools. The architecture is already set up.

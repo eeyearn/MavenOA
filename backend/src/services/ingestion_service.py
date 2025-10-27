@@ -75,7 +75,7 @@ class IngestionService:
             # FOR DEVELOPMENT: Filter for a specific folder to speed up testing
             # To use, set a folder name. To disable, set to None.
             # =================================================================
-            target_folder_name = "Testing scripts" # <-- SET YOUR FOLDER NAME HERE
+            target_folder_name = None # <-- SET YOUR FOLDER NAME HERE
             # =================================================================
 
             files_to_process = []

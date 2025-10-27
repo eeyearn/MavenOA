@@ -99,3 +99,7 @@ temp/
 # Misc
 .cache/
 .parcel-cache/
+
+#
+# MavenOA Project
+token.json

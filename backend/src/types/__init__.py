@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
 
@@ -19,11 +19,12 @@ class DriveFile(BaseModel):
     """Represents a Google Drive file"""
     id: str
     name: str
-    mime_type: str = Field(alias="mimeType")
+    mimeType: str
     path: str
-    modified_time: str = Field(alias="modifiedTime")
-    size: Optional[int] = None
-    web_view_link: Optional[str] = Field(None, alias="webViewLink")
+    modifiedTime: str
+    size: Optional[str] = None
+    webViewLink: Optional[str] = None
+    parents: Optional[List[str]] = None
 
     class Config:
         populate_by_name = True
@@ -34,7 +35,7 @@ class DriveFolder(BaseModel):
     id: str
     name: str
     path: str
-    file_count: int = Field(alias="fileCount")
+    fileCount: int
 
     class Config:
         populate_by_name = True
@@ -42,10 +43,11 @@ class DriveFolder(BaseModel):
 
 class SearchResult(BaseModel):
     """Represents a search result with source attribution"""
-    file: DriveFile
-    snippet: str
-    relevance_score: float = Field(alias="relevanceScore")
-    highlights: List[str] = []
+    id: str
+    score: float
+    text: str
+    metadata: Dict[str, Any]
+    highlights: List[str]
 
     class Config:
         populate_by_name = True
@@ -62,10 +64,10 @@ class ChatMessage(BaseModel):
 
 class IngestionStatus(BaseModel):
     """Represents the status of Drive ingestion"""
-    is_ingesting: bool = Field(alias="isIngesting")
-    total_files: int = Field(alias="totalFiles")
-    processed_files: int = Field(alias="processedFiles")
-    current_file: Optional[str] = Field(None, alias="currentFile")
+    is_ingesting: bool
+    total_files: int
+    processed_files: int
+    current_file: Optional[str] = None
     error: Optional[str] = None
 
     class Config:

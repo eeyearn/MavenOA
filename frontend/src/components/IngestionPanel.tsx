@@ -3,94 +3,108 @@ import { useIngestionStatus } from '@/hooks/useIngestionStatus';
 import { useStartIngestion } from '@/hooks/useStartIngestion';
 
 export const IngestionPanel = () => {
-  const { data: status } = useIngestionStatus();
+  const { data: status, refetch: refetchStatus } = useIngestionStatus();
   const startIngestion = useStartIngestion();
 
   const handleStartIngestion = () => {
-    startIngestion.mutate();
+    startIngestion.mutate(undefined, {
+      onSuccess: () => {
+        // Immediately refetch status after starting ingestion
+        setTimeout(() => {
+          refetchStatus();
+        }, 500);
+      }
+    });
   };
 
+  const isIngestionComplete = !status?.is_ingesting && (status?.processed_files ?? 0) > 0;
+  const isIngesting = status?.is_ingesting;
+  const isPristine = !status?.is_ingesting && (status?.processed_files ?? 0) === 0;
+
   const progress =
-    status?.totalFiles && status.totalFiles > 0
-      ? (status.processedFiles / status.totalFiles) * 100
+    status?.total_files && status.total_files > 0
+      ? (status.processed_files / status.total_files) * 100
       : 0;
 
   return (
     <div className="border border-black rounded-lg p-4 bg-white">
       <h3 className="text-lg font-semibold mb-4 text-black">Drive Ingestion</h3>
 
-      {!status?.isIngesting && !status?.processedFiles && (
+      {/* Initial state or Ingestion complete */}
+      {(isPristine || isIngestionComplete) && (
         <div className="space-y-3">
-          <p className="text-sm text-gray-700">
-            Start ingesting your Google Drive files into the vector database for semantic search.
-          </p>
+          {isPristine ? (
+            <p className="text-sm text-gray-700">
+              Start ingesting your Google Drive files into the vector database for semantic search.
+            </p>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-black">
+                <CheckCircle className="w-5 h-5" />
+                <span className="font-medium">Ingestion complete</span>
+              </div>
+              <p className="text-sm text-gray-700">
+                Successfully processed {status.processed_files} files
+              </p>
+            </>
+          )}
+
           <button
             onClick={handleStartIngestion}
-            disabled={startIngestion.isPending}
+            disabled={startIngestion.isPending || isIngesting}
             className="w-full bg-black text-white rounded-lg px-4 py-2 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
           >
-            {startIngestion.isPending ? (
+            {startIngestion.isPending || isIngesting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Starting...
+                {isIngestionComplete ? 'Re-ingesting...' : 'Starting...'}
               </>
             ) : (
               <>
                 <Play className="w-4 h-4" />
-                Start Ingestion
+                {isIngestionComplete ? 'Re-ingest Drive' : 'Start Ingestion'}
               </>
             )}
           </button>
         </div>
       )}
-
-      {status?.isIngesting && (
+      
+      {/* Ingestion in progress */}
+      {isIngesting && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-black">
             <Loader2 className="w-5 h-5 animate-spin" />
             <span className="font-medium">Ingesting files...</span>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-gray-700">
-              <span>
-                {status.processedFiles} / {status.totalFiles} files
-              </span>
-              <span>{progress.toFixed(0)}%</span>
+          {status.total_files > 0 && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-gray-700">
+                <span>
+                  {status.processed_files} / {status.total_files} files
+                </span>
+                <span>{progress.toFixed(0)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-black h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-black h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
+          )}
 
-          {status.currentFile && (
+          {status.current_file && (
             <p className="text-sm text-gray-700 truncate">
-              Processing: <span className="font-medium">{status.currentFile}</span>
+              {status.total_files === 0 ? (
+                <span className="font-medium">{status.current_file}</span>
+              ) : (
+                <>
+                  Processing: <span className="font-medium">{status.current_file}</span>
+                </>
+              )}
             </p>
           )}
-        </div>
-      )}
-
-      {!status?.isIngesting && status?.processedFiles && status.processedFiles > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-black">
-            <CheckCircle className="w-5 h-5" />
-            <span className="font-medium">Ingestion complete</span>
-          </div>
-          <p className="text-sm text-gray-700">
-            Successfully processed {status.processedFiles} files
-          </p>
-          <button
-            onClick={handleStartIngestion}
-            disabled={startIngestion.isPending}
-            className="w-full bg-white text-black border border-black rounded-lg px-4 py-2 hover:bg-gray-100 disabled:bg-gray-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
-          >
-            <Play className="w-4 h-4" />
-            Re-ingest Drive
-          </button>
         </div>
       )}
 

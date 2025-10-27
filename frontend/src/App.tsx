@@ -2,10 +2,20 @@ import { ChatInterface } from '@/components/ChatInterface';
 import { IngestionPanel } from '@/components/IngestionPanel';
 import { AuthButton } from '@/components/AuthButton';
 import { useAuthStatus } from '@/hooks/useAuthStatus';
+import { Loader2 } from 'lucide-react';
 
 function App() {
-  const { data: authStatus } = useAuthStatus();
+  const { data: authStatus, isLoading } = useAuthStatus();
   const isAuthenticated = authStatus?.isAuthenticated ?? false;
+
+  // Show a loading spinner while we check the auth status
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-white">
+        <Loader2 className="w-10 h-10 text-black animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-white">

@@ -3,94 +3,40 @@ Drive Routes
 Handles file and folder listing from Google Drive
 """
 
+import asyncio
+from typing import Optional, List
+
 from fastapi import APIRouter, HTTPException
-from typing import List
 from ..services.drive_service import drive_service
 from ..types import DriveFile, DriveFolder
 
 router = APIRouter(prefix="/drive", tags=["drive"])
 
 
-@router.get("/files", response_model=List[DriveFile])
-async def list_files():
-    """
-    List all files in Google Drive.
-    Returns formatted list of DriveFile objects.
-    """
+@router.get("/files")
+async def get_files(folderId: Optional[str] = None):
+    """Returns a list of all files in the user's Drive, optionally filtered by folder."""
     try:
-        files = drive_service.list_files()
-
-        # Convert to DriveFile objects with paths
-        drive_files = []
-        for file in files:
-            path = drive_service.build_file_path(
-                file['id'],
-                file['name'],
-                file.get('parents')
-            )
-
-            drive_file = DriveFile(
-                id=file['id'],
-                name=file['name'],
-                mimeType=file['mimeType'],
-                path=path,
-                modifiedTime=file['modifiedTime'],
-                size=file.get('size'),
-                webViewLink=file.get('webViewLink')
-            )
-            drive_files.append(drive_file)
-
-        return drive_files
+        files = await asyncio.to_thread(drive_service.list_files, folder_id=folderId)
+        # Filter out folders from the general file list
+        files = [f for f in files if f['mimeType'] != 'application/vnd.google-apps.folder']
+        return sorted(files, key=lambda f: f['name'])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/folders", response_model=List[DriveFolder])
-async def list_folders():
-    """
-    List all folders in Google Drive.
-    Returns formatted list of DriveFolder objects with file counts.
-    """
+@router.get("/folders")
+async def get_folders():
+    """Returns a list of all folders in the user's Drive."""
     try:
-        files = drive_service.list_files()
-
-        # Filter folders and count files
-        folders_map = {}
-        for file in files:
-            if file['mimeType'] == 'application/vnd.google-apps.folder':
-                folders_map[file['id']] = {
-                    'id': file['id'],
-                    'name': file['name'],
-                    'file_count': 0,
-                    'parents': file.get('parents')
-                }
-
-        # Count files in each folder
-        for file in files:
-            if file['mimeType'] != 'application/vnd.google-apps.folder':
-                parents = file.get('parents', [])
-                for parent_id in parents:
-                    if parent_id in folders_map:
-                        folders_map[parent_id]['file_count'] += 1
-
-        # Convert to DriveFolder objects
-        drive_folders = []
-        for folder_data in folders_map.values():
-            path = drive_service.build_file_path(
-                folder_data['id'],
-                folder_data['name'],
-                folder_data.get('parents')
-            )
-
-            drive_folder = DriveFolder(
-                id=folder_data['id'],
-                name=folder_data['name'],
-                path=path,
-                fileCount=folder_data['file_count']
-            )
-            drive_folders.append(drive_folder)
-
-        return drive_folders
+        # We get all files and then filter for folders.
+        # This can be optimized if needed.
+        all_files = await asyncio.to_thread(drive_service.list_files)
+        folders = [
+            f for f in all_files
+            if f['mimeType'] == 'application/vnd.google-apps.folder'
+        ]
+        return sorted(folders, key=lambda f: f['name'])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

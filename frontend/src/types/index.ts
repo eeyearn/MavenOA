@@ -16,10 +16,11 @@ export interface DriveFolder {
 }
 
 export interface SearchResult {
-  file: DriveFile;
-  snippet: string;
-  relevanceScore: number;
-  highlights: string[];
+    id: string;
+    score: number;
+    text: string;
+    metadata: { [key: string]: any };
+    highlights: string[];
 }
 
 export interface ChatMessage {
@@ -31,11 +32,11 @@ export interface ChatMessage {
 }
 
 export interface IngestionStatus {
-  isIngesting: boolean;
-  totalFiles: number;
-  processedFiles: number;
-  currentFile?: string;
-  error?: string;
+    is_ingesting: boolean;
+    total_files: number;
+    processed_files: number;
+    current_file: string | null;
+    error?: string;
 }
 
 export interface SearchRequest {

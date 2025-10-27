@@ -1,181 +1,168 @@
 """
-Chat Service - TEMPLATE FOR CANDIDATES TO IMPLEMENT
+Chat Service - Handles chat interactions with RAG (Retrieval Augmented Generation)
 
-TODO: Implement this service to:
-1. Use retrieval service to find relevant chunks
-2. Build context from search results
-3. Generate intelligent responses using an LLM
-4. Cite sources clearly in responses
-
-Key considerations:
-- Choose an appropriate LLM (OpenAI, Anthropic, Cohere, etc.)
-- Build effective prompts with retrieved context
-- Handle conversation history
-- Implement proper source attribution
+This service:
+1. Uses search tool to find relevant chunks
+2. Builds context from search results
+3. Generates intelligent responses using an LLM
+4. Cites sources clearly in responses
 """
 
-from typing import List
-from ..types import ChatRequest, ChatResponse, SearchRequest
-from .retrieval_service import retrieval_service
+from typing import List, Optional
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+from ..types import ChatRequest, ChatResponse, SearchRequest, SearchResult
+from ..tools.search_tool import search_documents
+
+# Load environment variables
+load_dotenv()
+
+# Initialize OpenAI client
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 class ChatService:
     """
     Service responsible for handling chat interactions with context from Google Drive.
-
-    Candidates should implement:
-    - LLM client initialization
-    - Context building from search results
-    - Prompt engineering for accurate responses
-    - Source attribution in responses
+    
+    Uses RAG (Retrieval Augmented Generation) to provide accurate, cited responses.
     """
 
     def __init__(self):
-        # TODO: Initialize your LLM client here
-        # Examples:
-        # - OpenAI: self.llm = openai.ChatCompletion
-        # - Anthropic: self.llm = anthropic.Anthropic()
-        # - Cohere: self.llm = cohere.Client()
-
-        self.llm = None  # Replace with your LLM client
+        self.llm = openai_client
+        # Model configuration
+        self.model = "gpt-4o-mini"  # Good balance of quality and cost
+        self.max_tokens = 1000
+        self.temperature = 0.7
 
     async def chat(self, request: ChatRequest) -> ChatResponse:
         """
         Process a chat message and return a response with sources.
-
-        TODO: Implement the following steps:
-        1. Use retrieval_service to find relevant chunks
+        
+        Steps:
+        1. Use search tool to find relevant chunks
         2. Build context from retrieved chunks
         3. Construct prompt with context and conversation history
         4. Generate response using LLM
         5. Format response with source citations
         6. Return ChatResponse with message and sources
-
-        Args:
-            request: ChatRequest with message and optional context
-
-        Returns:
-            ChatResponse with generated message and source citations
-
-        Consider:
-        - Including conversation history for context
-        - Limiting context size to fit LLM token limits
-        - Instructing LLM to cite sources in response
-        - Handling cases where no relevant documents are found
-        - Making responses concise and accurate
         """
-        # TODO: Implement chat logic
-        raise NotImplementedError("Candidates must implement chat")
+        try:
+            # Step 1: Retrieve relevant documents
+            print(f"Searching for: {request.message}")
+            sources = await search_documents(
+                query=request.message,
+                folder_id=request.folder_id,
+                file_id=request.file_id,
+                limit=5  # Get top 5 most relevant chunks
+            )
+            
+            print(f"Found {len(sources)} relevant sources")
+            
+            if not sources:
+                response_text = "I couldn't find any relevant information in your Google Drive to answer that question."
+                return ChatResponse(message=response_text, sources=[])
+            
+            # Step 2: Build context from sources
+            context = self._build_context(sources)
+            
+            # Step 3: Generate response using LLM
+            response_text = await self._generate_response(
+                message=request.message,
+                context=context,
+                history=request.conversation_history
+            )
+            
+            # Step 4: Return with sources
+            return ChatResponse(
+                message=response_text,
+                sources=sources
+            )
+            
+        except Exception as e:
+            print(f"Error in chat: {str(e)}")
+            # Return error message with no sources
+            return ChatResponse(
+                message=f"I'm sorry, I encountered an error while processing your request: {str(e)}",
+                sources=[]
+            )
 
-        # Example structure:
-        # # Step 1: Retrieve relevant documents
-        # search_request = SearchRequest(
-        #     query=request.message,
-        #     folderId=request.folder_id,
-        #     fileId=request.file_id,
-        #     limit=5
-        # )
-        # sources = await retrieval_service.search(search_request)
-        #
-        # # Step 2: Build context
-        # context = self._build_context(sources)
-        #
-        # # Step 3: Generate response
-        # response_text = await self._generate_response(
-        #     message=request.message,
-        #     context=context,
-        #     history=request.conversation_history
-        # )
-        #
-        # # Step 4: Return with sources
-        # return ChatResponse(
-        #     message=response_text,
-        #     sources=sources
-        # )
-
-    def _build_context(self, sources: List) -> str:
+    def _build_context(self, sources: List[SearchResult]) -> str:
         """
         Build context string from search results.
-
-        TODO: Implement context building:
-        - Combine relevant chunks into coherent context
-        - Include source attribution for each chunk
-        - Format for LLM prompt
-        - Handle context length limits
-
-        Args:
-            sources: List of SearchResult objects
-
-        Returns:
-            Formatted context string
+        
+        Combines relevant chunks into coherent context with source attribution.
         """
-        # TODO: Implement context building
-        raise NotImplementedError("Candidates must implement _build_context")
+        context = ""
+        for i, source in enumerate(sources):
+            context += f"Source {i+1} (File: {source.metadata.get('file_name', 'Unknown')}, Link: {source.metadata.get('web_view_link', '#')}):\n"
+            context += f"```{source.text}```\n\n"
+        return context
 
-        # Example format:
-        # context_parts = []
-        # for i, source in enumerate(sources, 1):
-        #     context_parts.append(
-        #         f"[Source {i}] From '{source.file.name}' ({source.file.path}):\n"
-        #         f"{source.snippet}\n"
-        #     )
-        # return "\n\n".join(context_parts)
-
-    async def _generate_response(self, message: str, context: str, history: List = None) -> str:
+    async def _generate_response(
+        self, 
+        message: str, 
+        context: str, 
+        history: Optional[List] = None
+    ) -> str:
         """
         Generate LLM response given message, context, and history.
-
-        TODO: Implement LLM response generation:
-        1. Build system prompt with instructions
-        2. Include context from retrieved documents
-        3. Add conversation history if provided
-        4. Call LLM API
-        5. Extract and return response text
-
-        Args:
-            message: User's question
-            context: Context from retrieved documents
-            history: Optional conversation history
-
-        Returns:
-            Generated response text
-
-        Consider:
-        - Crafting a system prompt that encourages:
-          * Accurate answers based only on provided context
-          * Clear source citations
-          * Admitting when information isn't available
-        - Managing token limits
-        - Handling API errors gracefully
+        
+        Uses OpenAI's chat completion API with carefully crafted prompts
+        to ensure accurate, cited responses.
         """
-        # TODO: Implement LLM response generation
-        raise NotImplementedError("Candidates must implement _generate_response")
+        # System prompt - instructions for the LLM
+        system_prompt = """You are a helpful AI assistant that helps users find and understand information from their Google Drive documents.
 
-        # Example with OpenAI:
-        # system_prompt = """You are a helpful assistant that answers questions about
-        # documents in a Google Drive. Use the provided context to answer questions
-        # accurately. Always cite your sources by mentioning the document name.
-        # If the answer isn't in the context, say so."""
-        #
-        # messages = [{"role": "system", "content": system_prompt}]
-        #
-        # if history:
-        #     for msg in history:
-        #         messages.append({"role": msg.role, "content": msg.content})
-        #
-        # messages.append({
-        #     "role": "user",
-        #     "content": f"Context:\n{context}\n\nQuestion: {message}"
-        # })
-        #
-        # response = await self.llm.create(
-        #     model="gpt-4",
-        #     messages=messages,
-        #     temperature=0.7,
-        #     max_tokens=500
-        # )
-        #
-        # return response.choices[0].message.content
+Your responsibilities:
+1. Answer questions accurately based ONLY on the provided context from Google Drive documents
+2. Always cite your sources by mentioning the document name when you use information from it
+3. If the answer is not in the provided context, clearly say so - don't make up information
+4. Be concise but thorough in your responses
+5. When multiple documents contain relevant information, synthesize it clearly
+
+Remember: Only use information from the provided sources. If you're not sure, say so."""
+
+        # Build messages for the API
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add conversation history if provided (for context continuity)
+        if history and len(history) > 0:
+            for msg in history[-5:]:  # Only include last 5 messages to manage token limits
+                messages.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
+        
+        # Add the current user message with context
+        user_message = f"""Based on the following documents from Google Drive:
+
+{context}
+
+Question: {message}
+
+Please provide a helpful answer based on the information above. Remember to cite which document(s) you're getting the information from."""
+
+        messages.append({
+            "role": "user",
+            "content": user_message
+        })
+        
+        try:
+            # Call OpenAI API
+            response = self.llm.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            print(f"Error calling LLM: {str(e)}")
+            return f"I encountered an error generating a response: {str(e)}"
 
 
 # Global instance

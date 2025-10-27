@@ -86,7 +86,7 @@ export const ChatInterface = () => {
               <option value="">All folders</option>
               {folders?.map((folder) => (
                 <option key={folder.id} value={folder.id}>
-                  {folder.name} ({folder.fileCount} files)
+                  {folder.name} ({folder.fileCount}files)
                 </option>
               ))}
             </select>
@@ -102,7 +102,7 @@ export const ChatInterface = () => {
               >
                 <option value="">All files in folder</option>
                 {files
-                  ?.filter((file) => file.path.includes(selectedFolderId))
+                  ?.filter((file) => file.parents?.includes(selectedFolderId))
                   .map((file) => (
                     <option key={file.id} value={file.id}>
                       {file.name}

@@ -9,19 +9,53 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import io
 import os
-# 
+from google.auth.transport.requests import Request
+import google_auth_httplib2
+import httplib2
 
 
 class DriveService:
     """Service for interacting with Google Drive API"""
 
     SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+    TOKEN_FILE = 'token.json'
 
     def __init__(self):
         self.client_id = os.getenv('GOOGLE_CLIENT_ID')
         self.client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
         self.redirect_uri = os.getenv('GOOGLE_REDIRECT_URI')
         self.credentials: Optional[Credentials] = None
+        self._load_credentials()
+
+    def _load_credentials(self):
+        """Loads credentials from token.json if it exists."""
+        try:
+            if os.path.exists(self.TOKEN_FILE):
+                print("Found token.json, attempting to load credentials...")
+                creds = Credentials.from_authorized_user_file(self.TOKEN_FILE, self.SCOPES)
+                if creds and creds.valid:
+                    # Refresh token if necessary
+                    if creds.expired and creds.refresh_token:
+                        print("Credentials expired, attempting to refresh...")
+                        creds.refresh(Request())
+                        print("Credentials successfully refreshed.")
+                    self.credentials = creds
+                    print("Successfully loaded credentials from token.json.")
+                else:
+                    print("Loaded token is invalid. Deleting token.json.")
+                    os.remove(self.TOKEN_FILE)
+        except Exception as e:
+            print(f"Error loading credentials from token.json: {e}")
+            print("Deleting corrupted token.json file.")
+            if os.path.exists(self.TOKEN_FILE):
+                os.remove(self.TOKEN_FILE)
+
+    def _save_credentials(self):
+        """Saves credentials to token.json."""
+        if self.credentials:
+            with open(self.TOKEN_FILE, 'w') as token:
+                token.write(self.credentials.to_json())
+            print("Saved credentials to token.json")
 
     def get_auth_url(self) -> str:
         """Generate Google OAuth authorization URL"""
@@ -41,6 +75,7 @@ class DriveService:
 
         auth_url, _ = flow.authorization_url(
             access_type='offline',
+            prompt='consent',  # Force prompt for consent to ensure refresh_token is issued
             include_granted_scopes='true'
         )
 
@@ -64,6 +99,7 @@ class DriveService:
 
         flow.fetch_token(code=code)
         self.credentials = flow.credentials
+        self._save_credentials()
         return self.credentials
 
     def list_files(self, folder_id: Optional[str] = None, page_size: int = 100) -> List[dict]:
@@ -71,7 +107,9 @@ class DriveService:
         if not self.credentials:
             raise ValueError("Not authenticated. Call handle_callback first.")
 
-        service = build('drive', 'v3', credentials=self.credentials)
+        # Create an authorized http object with a timeout
+        authed_http = google_auth_httplib2.AuthorizedHttp(self.credentials, http=httplib2.Http(timeout=60))
+        service = build('drive', 'v3', http=authed_http)
 
         query = "trashed=false"
         if folder_id:
@@ -79,19 +117,36 @@ class DriveService:
 
         results = []
         page_token = None
+        previous_page_token = ""  # Sentinel value to detect duplicate tokens
 
         while True:
-            response = service.files().list(
-                q=query,
-                pageSize=page_size,
-                fields="nextPageToken, files(id, name, mimeType, modifiedTime, size, webViewLink, parents)",
-                pageToken=page_token
-            ).execute()
+            try:
+                print(f"Requesting files from Drive API... (Page token: {page_token})")
+                response = service.files().list(
+                    q=query,
+                    pageSize=page_size,
+                    fields="nextPageToken, files(id, name, mimeType, modifiedTime, size, webViewLink, parents)",
+                    pageToken=page_token
+                ).execute()
 
-            results.extend(response.get('files', []))
-            page_token = response.get('nextPageToken')
+                results.extend(response.get('files', []))
+                print(f"Fetched {len(results)} total files so far...")
 
-            if not page_token:
+                previous_page_token = page_token
+                page_token = response.get('nextPageToken')
+
+                if not page_token:
+                    print("No more pages from Drive API. Finished listing files.")
+                    break
+                
+                # Safety break to prevent infinite loops from the API
+                if page_token == previous_page_token:
+                    print("Received a duplicate page token from Drive API. Breaking loop.")
+                    break
+
+            except Exception as e:
+                print(f"Error calling Drive API in list_files: {e}")
+                # Break the loop on error to prevent hanging
                 break
 
         return results
@@ -101,7 +156,8 @@ class DriveService:
         if not self.credentials:
             raise ValueError("Not authenticated")
 
-        service = build('drive', 'v3', credentials=self.credentials)
+        authed_http = google_auth_httplib2.AuthorizedHttp(self.credentials, http=httplib2.Http(timeout=60))
+        service = build('drive', 'v3', http=authed_http)
         return service.files().get(
             fileId=file_id,
             fields="id, name, mimeType, modifiedTime, size, webViewLink, parents"
@@ -112,7 +168,8 @@ class DriveService:
         if not self.credentials:
             raise ValueError("Not authenticated")
 
-        service = build('drive', 'v3', credentials=self.credentials)
+        authed_http = google_auth_httplib2.AuthorizedHttp(self.credentials, http=httplib2.Http(timeout=60))
+        service = build('drive', 'v3', http=authed_http)
         request = service.files().get_media(fileId=file_id)
 
         fh = io.BytesIO()
@@ -129,7 +186,8 @@ class DriveService:
         if not self.credentials:
             raise ValueError("Not authenticated")
 
-        service = build('drive', 'v3', credentials=self.credentials)
+        authed_http = google_auth_httplib2.AuthorizedHttp(self.credentials, http=httplib2.Http(timeout=60))
+        service = build('drive', 'v3', http=authed_http)
         request = service.files().export_media(fileId=file_id, mimeType=mime_type)
 
         fh = io.BytesIO()
@@ -146,7 +204,8 @@ class DriveService:
         if not parents or not self.credentials:
             return f"/{file_name}"
 
-        service = build('drive', 'v3', credentials=self.credentials)
+        authed_http = google_auth_httplib2.AuthorizedHttp(self.credentials, http=httplib2.Http(timeout=60))
+        service = build('drive', 'v3', http=authed_http)
         path_parts = [file_name]
 
         current_parent = parents[0] if parents else None
